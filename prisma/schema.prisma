@@ -1,0 +1,65 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Usuario {
+  id        Int      @id @default(autoincrement())
+  nome      String   @unique
+  senha     String
+  papel     Papel    @default(COZINHEIRO)
+  criadoEm  DateTime @default(now())
+  itensCriados ItemProducao[] @relation("Criador")
+}
+
+enum Papel {
+  DONO
+  COZINHEIRO
+}
+
+model Produto {
+  id        Int      @id @default(autoincrement())
+  nome      String
+  tipo      TipoProduto
+  preco     Float     // para KG: preço por kg; para UN: preço unitário
+  unidade   Unidade   @default(UN)
+  criadoEm  DateTime @default(now())
+  itens     ItemProducao[]
+}
+
+enum TipoProduto {
+  MASSA
+  MOLHO
+  LASANHA
+  TORTA
+  OUTRO
+}
+
+enum Unidade {
+  UN   // unidade (peça)
+  KG   // quilograma (preço por kg)
+}
+
+model ItemProducao {
+  id            Int        @id @default(autoincrement())
+  produtoId     Int
+  produto       Produto    @relation(fields: [produtoId], references: [id])
+  data          DateTime
+  quantidade    Int
+  precoUnitario Float
+  status        StatusItem @default(PENDENTE)
+  finalizadoEm  DateTime?
+  observacao    String?
+  criadoPorId   Int?
+  criadoPor     Usuario?   @relation("Criador", fields: [criadoPorId], references: [id])
+  criadoEm      DateTime   @default(now())
+}
+
+enum StatusItem {
+  PENDENTE
+  FINALIZADO
+}

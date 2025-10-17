@@ -1,0 +1,92 @@
+/* public/css/estilo.css - atualizado */
+:root{
+  --primaria:#b71c1c; /* cor do criar lista */
+  --secundaria:#f7eee6;
+  --texto:#222;
+  --card-bg:#fff;
+  --sombra: 0 6px 18px rgba(0,0,0,0.08);
+  --radius:12px;
+  --btn-padding:12px 14px;
+  --btn-gap:10px;
+}
+
+/* Reset */
+*{box-sizing:border-box}
+body{font-family:Inter, system-ui, Arial, sans-serif; background: linear-gradient(180deg, var(--secundaria), #fff); margin:0; padding:12px; color:var(--texto)}
+.container{max-width:1100px;margin:0 auto}
+
+/* Header + hero */
+.header {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  position:relative;
+  padding:12px;
+}
+
+.brand { display:flex; align-items:center; gap:12px; z-index:3; }
+.logo{height:56px; width:auto; border-radius:8px; box-shadow: 0 6px 14px rgba(0,0,0,0.08); background:#fff}
+
+.titulo{font-size:20px;font-weight:700;color:var(--primaria)}
+.subtitulo{font-size:12px;color:#666}
+
+/* Hero (maior e mensagem deslocada para baixo) */
+.hero {
+  margin-top:12px;
+  border-radius:12px;
+  overflow:hidden;
+  position:relative;
+  min-height:200px; /* maior */
+  display:block;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}
+.hero .hero-bg{ position:absolute; inset:0; background-image: url('/images/hero.avif'); background-size: cover; background-position: center; filter: saturate(0.95) contrast(1); transform: translateZ(0); }
+.hero .overlay{ position:absolute; inset:0; background: linear-gradient(180deg, rgba(0,0,0,0.18), rgba(0,0,0,0.08)); }
+.hero .conteudo { position:relative; z-index:5; padding:36px 18px 12px 18px; color:#fff; display:flex; flex-direction:column; justify-content:flex-end; height:100%; } /* deslocado para baixo */
+
+/* Layout e cards */
+.app-card{background:var(--card-bg);padding:14px;border-radius:12px;box-shadow:var(--sombra);margin-bottom:14px}
+.row{display:flex;gap:14px}
+.col{flex:1}
+
+/* Botões - todos com cor primaria e espaçamento maior */
+.btn{background:var(--primaria);color:#fff;border:none;padding:var(--btn-padding);border-radius:8px;cursor:pointer;margin-right:var(--btn-gap)}
+.btn-ghost{background:transparent;border:1px solid #ddd;padding:10px 12px;border-radius:8px;cursor:pointer;margin-right:var(--btn-gap)}
+/* manter botões secundários visualmente parecidos: cobrimos via classe action-primaria */
+.btn.action-primaria { background:var(--primaria); color:#fff; border: none; }
+
+/* Cards de produtos */
+.produto-card{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:10px;border:1px solid #eee;align-items:flex-start}
+.produto-card h4{margin:0}
+.produto-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+
+/* tabela */
+.table{width:100%;border-collapse:collapse;margin-top:8px}
+.table th,.table td{padding:10px;border-bottom:1px solid #eee;text-align:left}
+
+/* observacoes area */
+.area-observacoes{margin-top:12px}
+
+/* forms area */
+.formsArea{margin-top:12px}
+
+/* inputs */
+input,select,textarea{padding:10px;border-radius:8px;border:1px solid #ddd;margin:6px 0;}
+
+/* responsive */
+@media(max-width:900px){
+  .row{flex-direction:column}
+  .logo{height:48px}
+  .hero { min-height:160px }
+  .hero .conteudo { padding:28px 12px 10px 12px }
+  .produto-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+}
+
+@media(max-width:420px){
+  body{padding:8px}
+  .titulo{font-size:18px}
+  .logo{height:44px}
+  input,select,button{width:100%}
+  .hero { min-height:140px }
+  .btn{display:block;margin-bottom:10px}
+}

@@ -1,0 +1,110 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Admin - Massas Paparazzi</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="/css/estilo.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="container">
+
+    <header class="header">
+      <div class="brand">
+        <picture>
+          <source srcset="/images/logo.avif" type="image/avif">
+          <img src="/images/logo.avif" alt="Logo" class="logo">
+        </picture>
+        <div>
+          <div class="titulo">Massas Paparazzi</div>
+          <div class="subtitulo">Painel do Dono</div>
+        </div>
+      </div>
+    </header>
+
+    <section class="hero" role="img" aria-label="Imagem das massas Paparazzi">
+      <div class="hero-bg" aria-hidden="true"></div>
+      <div class="overlay" aria-hidden="true"></div>
+      <div class="conteudo">
+        <h2 style="margin:0 0 8px 0">Bem-vindo ao Painel</h2>
+        <p style="margin:0 0 6px 0">Crie a lista do dia, acompanhe a produção e veja observações enviadas pela cozinha.</p>
+      </div>
+    </section>
+
+    <!-- login -->
+    <div id="loginCard" class="app-card">
+      <h3>Entrar</h3>
+      <form id="formLogin" autocomplete="on">
+        <input id="nome" name="username" autocomplete="username" placeholder="Nome" required />
+        <input id="senha" name="password" autocomplete="current-password" placeholder="Senha" type="password" required />
+        <button class="btn">Entrar</button>
+      </form>
+    </div>
+
+    <!-- app area -->
+    <div id="appArea" style="display:none">
+      <div class="row">
+        <div class="col app-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:10px">
+              <label>Data: <input id="dataFiltro" type="date" /></label>
+              <button id="btnNovoProdutoTopo" class="btn action-primaria">Novo Produto</button>
+            </div>
+
+            <div>
+              <button id="btnPainel" class="btn action-primaria">Painel</button>
+              <button id="btnProdutos" class="btn action-primaria">Produtos</button>
+              <button id="btnCriarLista" class="btn action-primaria">Criar Lista</button>
+              <button id="btnConfig" class="btn-ghost">Configurações</button>
+              <button id="btnSair" class="btn-ghost">Sair</button>
+            </div>
+          </div>
+
+          <h3 id="tituloPainel">Produção do dia</h3>
+
+          <!-- tabela de produção (iniciamente visivel) -->
+          <div id="areaProducao">
+            <table class="table" id="tabelaItens">
+              <thead><tr><th>ID</th><th>Produto</th><th>Tipo</th><th>Qtd</th><th>Preço</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <!-- area para forms e para cards de produtos -->
+          <div class="formsArea" id="formsArea"></div>
+
+        </div>
+
+        <!-- lado direito: indicadores e observacoes -->
+        <div style="width:320px">
+          <div class="app-card">
+            <h4>Indicadores</h4>
+            <div class="indicadores">
+              <div class="indicador">Total Quantidade: <div id="totalQtd">0</div></div>
+              <div class="indicador">Total Valor: <div id="totalValor">R$ 0,00</div></div>
+              <div class="indicador">Pendentes: <div id="pendentes">0</div></div>
+              <div class="indicador">Finalizados: <div id="finalizados">0</div></div>
+            </div>
+          </div>
+
+          <div class="app-card area-observacoes">
+            <h4>Observações do dia</h4>
+            <div id="listaObservacoes">Nenhuma observação por enquanto.</div>
+          </div>
+
+          <div class="app-card">
+            <h4>Gráfico</h4>
+            <canvas id="grafico"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- scripts -->
+  <script src="/js/utils_moeda.js"></script>
+  <script src="/js/admin.js"></script>
+</body>
+</html>

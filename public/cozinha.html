@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Cozinha - Massas Paparazzi</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="/css/estilo.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="brand">
+        <picture>
+          <source srcset="/images/logo.avif" type="image/avif">
+          <img src="/images/logo.avif" alt="Logo Massas Paparazzi" class="logo">
+        </picture>
+        <div>
+          <div class="titulo">Painel da Cozinha</div>
+        </div>
+      </div>
+    </header>
+
+    <section class="hero" role="img" aria-label="Imagem das massas Paparazzi">
+      <div class="hero-bg" aria-hidden="true"></div>
+      <div class="overlay" aria-hidden="true"></div>
+      <div class="conteudo">
+        <h2 style="margin:0">Lista de Produção</h2>
+      </div>
+    </section>
+
+    <div id="loginCard" class="app-card">
+      <h3>Entrar</h3>
+      <form id="formLogin" autocomplete="on">
+        <input id="nome" name="username" autocomplete="username" placeholder="Nome" required />
+        <input id="senha" name="password" autocomplete="current-password" placeholder="Senha" type="password" required />
+        <button class="btn">Entrar</button>
+      </form>
+    </div>
+
+    <div id="appArea" style="display:none">
+      <div class="app-card">
+        <label>Data: <input id="dataFiltro" type="date" /></label>
+        <ul id="listaItens"></ul>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/utils_moeda.js"></script>
+  <script src="/js/cozinha.js"></script>
+</body>
+</html>
