@@ -1,45 +1,55 @@
-import express from "express";
-import path from "path";
-import cors from "cors";
-import dotenv from "dotenv";
-import { fileURLToPath } from "url";
-import routes from "./routes.js"; // suas rotas principais
+// src/servidor.js
+// Servidor principal (CommonJS) - compatível com npm run dev (nodemon) e Railway (process.env.PORT)
+const express = require('express')
+const http = require('http')
+const path = require('path')
+const cors = require('cors')
+require('dotenv').config()
 
-dotenv.config();
+const routes = require('./rotas') // index que monta as rotas da API
+const wsServidor = require('./wsServidor') // helper WS (setup + broadcast)
 
-const app = express();
-
-// Configurações de diretórios
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const app = express()
 
 // Middlewares
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(cors())
+app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
 
-// Pasta pública (HTML, CSS, JS)
-app.use(express.static(path.join(__dirname, "../public")));
+// Pasta pública (arquivos estáticos: public/admin.html, cozinha.html, css, js, images, etc.)
+const publicPath = path.join(__dirname, '..', 'public')
+app.use(express.static(publicPath))
 
-// 🔹 Redirecionamento padrão da raiz
-app.get("/", (req, res) => {
-  res.redirect("/admin.html"); // altere para '/cozinha.html' se preferir
-});
+// Redirecionamento raiz -> index (para evitar "Cannot GET /")
+app.get('/', (req, res) => {
+  // se quiser ir direto para /admin.html, o index faz redirect
+  res.sendFile(path.join(publicPath, 'index.html'))
+})
 
-// Rotas da API
-app.use("/api", routes);
+// Monta rotas da API na raiz (frontend usa '/autenticacao', '/produtos', '/producao', '/usuarios')
+app.use('/', routes)
 
-// Tratamento de erro 404 para rotas inexistentes
-app.use((req, res) => {
-  res.status(404).json({ error: "Rota não encontrada" });
-});
+// fallback 404 JSON para API (se requisitar /api/algo inexistente)
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api') || req.path.startsWith('/autenticacao') || req.path.startsWith('/produtos') || req.path.startsWith('/producao') || req.path.startsWith('/usuarios')) {
+    return res.status(404).json({ erro: 'rota não encontrada' })
+  }
+  // senão, deixa o static servir (caso o arquivo exista)
+  next()
+})
 
-// Porta (Railway define automaticamente process.env.PORT)
-const PORT = process.env.PORT || 3333;
+// Criar servidor HTTP e integrar WebSocket (ws)
+const port = process.env.PORT || 3333
+const server = http.createServer(app)
 
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Servidor rodando na porta ${PORT}`);
-  console.log(`🌐 Ambiente: ${process.env.NODE_ENV || "development"}`);
-});
+// criar WebSocket server usando 'ws' e conectar com nosso helper
+const WebSocket = require('ws')
+const wss = new WebSocket.Server({ server })
 
-export default app;
+// inicializa wsServidor (ele guarda a referência do wss e fornece broadcast)
+wsServidor.setup(wss)
+
+server.listen(port, '0.0.0.0', () => {
+  console.log(`Servidor rodando em http://localhost:${port} (PORT=${port})`)
+  console.log(`NODE_ENV=${process.env.NODE_ENV || 'development'}`)
+})

@@ -20,7 +20,7 @@
     "ws": "^8.18.3"
   },
   "devDependencies": {
-    "prisma": "^5.22.0",
-    "nodemon": "^2.0.22"
+    "nodemon": "^2.0.22",
+    "prisma": "^5.22.0"
   }
 }
