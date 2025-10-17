@@ -1,47 +1,45 @@
-// src/servidor.js
-const express = require('express')
-const cors = require('cors')
-const dotenv = require('dotenv')
-const http = require('http')
-const WebSocket = require('ws')
-const path = require('path')
+import express from "express";
+import path from "path";
+import cors from "cors";
+import dotenv from "dotenv";
+import { fileURLToPath } from "url";
+import routes from "./routes.js"; // suas rotas principais
 
-dotenv.config()
+dotenv.config();
 
-const autenticacao = require('./rotas/autenticacao')
-const produtos = require('./rotas/produtos') || require('./rotas/produtos') // manter se existir
-const producao = require('./rotas/producao') || require('./rotas/producao')
-const resumo = require('./rotas/resumo') || require('./rotas/resumo')
-const wsServidor = require('./wsServidor') // arquivo simples (ex.: src/wsServidor.js)
+const app = express();
 
-const app = express()
+// Configurações de diretórios
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-app.use(cors())
-app.use(express.json()) // substitui body-parser
-app.use(express.static(path.join(__dirname, '..', 'public')))
+// Middlewares
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Rotas
-app.use('/autenticacao', autenticacao)
-if (produtos) app.use('/produtos', produtos)
-if (producao) app.use('/producao', producao)
-if (resumo) app.use('/resumo', resumo)
+// Pasta pública (HTML, CSS, JS)
+app.use(express.static(path.join(__dirname, "../public")));
 
-// healthcheck
-app.get('/ping', (req, res) => res.json({ ok: true }))
+// 🔹 Redirecionamento padrão da raiz
+app.get("/", (req, res) => {
+  res.redirect("/admin.html"); // altere para '/cozinha.html' se preferir
+});
 
-const PORT = process.env.PORT || 3333
-const server = http.createServer(app)
+// Rotas da API
+app.use("/api", routes);
 
-// WebSocket server (se existir implementação)
-try {
-  const wss = new WebSocket.Server({ server })
-  if (wsServidor && typeof wsServidor.setup === 'function') {
-    wsServidor.setup(wss)
-  }
-} catch (e) {
-  console.warn('WebSocket não iniciado:', e.message)
-}
+// Tratamento de erro 404 para rotas inexistentes
+app.use((req, res) => {
+  res.status(404).json({ error: "Rota não encontrada" });
+});
 
-server.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`)
-})
+// Porta (Railway define automaticamente process.env.PORT)
+const PORT = process.env.PORT || 3333;
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 Servidor rodando na porta ${PORT}`);
+  console.log(`🌐 Ambiente: ${process.env.NODE_ENV || "development"}`);
+});
+
+export default app;
