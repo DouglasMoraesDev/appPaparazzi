@@ -1,5 +1,5 @@
 <!doctype html>
-<html>
+<html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
   <title>Admin - Massas Paparazzi</title>
@@ -14,11 +14,11 @@
       <div class="brand">
         <picture>
           <source srcset="/images/logo.avif" type="image/avif">
-          <img src="/images/logo.avif" alt="Logo" class="logo">
+          <img src="/images/logo.avif" alt="Logo Massas Paparazzi" class="logo">
         </picture>
         <div>
           <div class="titulo">Massas Paparazzi</div>
-          <div class="subtitulo">Painel do Dono</div>
+          <div class="subtitulo">Painel do estabaleicmento</div>
         </div>
       </div>
     </header>
@@ -50,6 +50,8 @@
             <div style="display:flex;align-items:center;gap:10px">
               <label>Data: <input id="dataFiltro" type="date" /></label>
               <button id="btnNovoProdutoTopo" class="btn action-primaria">Novo Produto</button>
+              <!-- botão para cadastrar usuário (dono poderá criar cozinheiros) -->
+              <button id="btnCadastrarUsuario" class="btn action-primaria">Cadastrar Usuário</button>
             </div>
 
             <div>
@@ -64,12 +66,26 @@
           <h3 id="tituloPainel">Produção do dia</h3>
 
           <!-- tabela de produção (iniciamente visivel) -->
-          <div id="areaProducao">
+        <div id="areaProducao">
+          <div class="table-wrap">
             <table class="table" id="tabelaItens">
-              <thead><tr><th>ID</th><th>Produto</th><th>Tipo</th><th>Qtd</th><th>Preço</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Produto</th>
+                  <th>Tipo</th>
+                  <th>Kg</th>
+                  <th>Qtd</th>
+                  <th>Preço</th>
+                  <th>Valor</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
               <tbody></tbody>
             </table>
           </div>
+        </div>
 
           <!-- area para forms e para cards de produtos -->
           <div class="formsArea" id="formsArea"></div>
@@ -104,6 +120,7 @@
   </div>
 
   <!-- scripts -->
+  <!-- utils_moeda.js deve existir e definir brlParaNumero / numeroParaBRL -->
   <script src="/js/utils_moeda.js"></script>
   <script src="/js/admin.js"></script>
 </body>

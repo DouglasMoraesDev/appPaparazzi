@@ -1,6 +1,14 @@
-/* public/css/estilo.css - atualizado */
+/* public/css/estilo.css
+   Versão reescrita: mantém responsividade, corrige larguras/colunas da tabela
+   - Produto: apenas nome (permite quebra de linha)
+   - Kg: mostra pesos (coluna específica)
+   - Tipo, Qtd, Preço, Valor, Status, Ações: colunas separadas com largura apropriada
+   - Tabela responsiva: wrapper horizontal scroll em telas menores
+*/
+
+/* ----------------- Variáveis e reset ----------------- */
 :root{
-  --primaria:#b71c1c; /* cor do criar lista */
+  --primaria:#b71c1c;
   --secundaria:#f7eee6;
   --texto:#222;
   --card-bg:#fff;
@@ -8,85 +16,153 @@
   --radius:12px;
   --btn-padding:12px 14px;
   --btn-gap:10px;
+  --muted:#666;
 }
 
-/* Reset */
 *{box-sizing:border-box}
-body{font-family:Inter, system-ui, Arial, sans-serif; background: linear-gradient(180deg, var(--secundaria), #fff); margin:0; padding:12px; color:var(--texto)}
+html,body{height:100%}
+body{
+  font-family:Inter, system-ui, Arial, sans-serif;
+  background: linear-gradient(180deg, var(--secundaria), #fff);
+  margin:0;
+  padding:12px;
+  color:var(--texto);
+}
 .container{max-width:1100px;margin:0 auto}
 
-/* Header + hero */
-.header {
-  display:flex;
-  align-items:center;
-  gap:12px;
-  position:relative;
-  padding:12px;
-}
-
-.brand { display:flex; align-items:center; gap:12px; z-index:3; }
+/* ----------------- Header e Hero ----------------- */
+.header{ display:flex; align-items:center; gap:12px; position:relative; padding:12px; }
+.brand{ display:flex; align-items:center; gap:12px; z-index:3; }
 .logo{height:56px; width:auto; border-radius:8px; box-shadow: 0 6px 14px rgba(0,0,0,0.08); background:#fff}
-
 .titulo{font-size:20px;font-weight:700;color:var(--primaria)}
-.subtitulo{font-size:12px;color:#666}
+.subtitulo{font-size:12px;color:var(--muted)}
 
-/* Hero (maior e mensagem deslocada para baixo) */
-.hero {
+.hero{
   margin-top:12px;
   border-radius:12px;
   overflow:hidden;
   position:relative;
-  min-height:200px; /* maior */
+  min-height:200px;
   display:block;
   box-shadow: 0 8px 24px rgba(0,0,0,0.08);
 }
 .hero .hero-bg{ position:absolute; inset:0; background-image: url('/images/hero.avif'); background-size: cover; background-position: center; filter: saturate(0.95) contrast(1); transform: translateZ(0); }
 .hero .overlay{ position:absolute; inset:0; background: linear-gradient(180deg, rgba(0,0,0,0.18), rgba(0,0,0,0.08)); }
-.hero .conteudo { position:relative; z-index:5; padding:36px 18px 12px 18px; color:#fff; display:flex; flex-direction:column; justify-content:flex-end; height:100%; } /* deslocado para baixo */
+.hero .conteudo { position:relative; z-index:5; padding:36px 18px 12px 18px; color:#fff; display:flex; flex-direction:column; justify-content:flex-end; height:100%; }
 
-/* Layout e cards */
+/* ----------------- Layout e Cards ----------------- */
 .app-card{background:var(--card-bg);padding:14px;border-radius:12px;box-shadow:var(--sombra);margin-bottom:14px}
 .row{display:flex;gap:14px}
 .col{flex:1}
 
-/* Botões - todos com cor primaria e espaçamento maior */
+/* ----------------- Botões ----------------- */
 .btn{background:var(--primaria);color:#fff;border:none;padding:var(--btn-padding);border-radius:8px;cursor:pointer;margin-right:var(--btn-gap)}
 .btn-ghost{background:transparent;border:1px solid #ddd;padding:10px 12px;border-radius:8px;cursor:pointer;margin-right:var(--btn-gap)}
-/* manter botões secundários visualmente parecidos: cobrimos via classe action-primaria */
 .btn.action-primaria { background:var(--primaria); color:#fff; border: none; }
 
-/* Cards de produtos */
+/* ----------------- Produtos (cards) ----------------- */
 .produto-card{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:10px;border:1px solid #eee;align-items:flex-start}
 .produto-card h4{margin:0}
 .produto-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
 
-/* tabela */
-.table{width:100%;border-collapse:collapse;margin-top:8px}
-.table th,.table td{padding:10px;border-bottom:1px solid #eee;text-align:left}
+/* ----------------- Tabela: wrapper responsivo ----------------- */
+/* .table-wrap permite scroll horizontal em telas pequenas */
+.table-wrap { width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; border-radius:8px; background:transparent; }
 
-/* observacoes area */
+/* tabela: largura total; larguras reais controladas por nth-child abaixo */
+.table{width:100%;border-collapse:collapse;margin-top:8px; min-width:900px}
+.table thead th, .table tbody td { padding:10px 12px; border-bottom:1px solid #eee; text-align:left; vertical-align:top; white-space:nowrap; }
+
+/* Estilo do cabeçalho */
+.table thead th { font-weight:700; color:var(--texto); background:transparent; position:relative; }
+
+/* ----------------- Ajuste de colunas (larguras fixas/relativas) -----------------
+   Colunas ordenadas como:
+   1 - ID
+   2 - Produto
+   3 - Tipo
+   4 - Kg
+   5 - Qtd
+   6 - Preço
+   7 - Valor
+   8 - Status
+   9 - Ações
+------------------------------------------------------------- */
+.table thead th:nth-child(1), .table tbody td:nth-child(1) { width:60px; min-width:50px; max-width:80px; text-align:left; }
+.table thead th:nth-child(2), .table tbody td:nth-child(2) { width:auto; min-width:180px; /* produto pode quebrar */ white-space:normal; }
+.table thead th:nth-child(3), .table tbody td:nth-child(3) { width:110px; min-width:90px; text-align:left; }
+.table thead th:nth-child(4), .table tbody td:nth-child(4) { width:160px; min-width:120px; text-align:left; } /* KG - pesos */
+.table thead th:nth-child(5), .table tbody td:nth-child(5) { width:60px; min-width:50px; text-align:center; }
+.table thead th:nth-child(6), .table tbody td:nth-child(6) { width:120px; min-width:100px; text-align:right; }
+.table thead th:nth-child(7), .table tbody td:nth-child(7) { width:140px; min-width:110px; text-align:right; }
+.table thead th:nth-child(8), .table tbody td:nth-child(8) { width:110px; min-width:90px; text-align:center; }
+.table thead th:nth-child(9), .table tbody td:nth-child(9) { width:140px; min-width:110px; text-align:center; }
+
+/* pequenos estilos dentro das células (detalhes como pesos e subtítulos) */
+.detalhes-kg { font-size:13px; color:#333; margin-top:6px; line-height:1.2 }
+.produto-nome { display:block; font-weight:700; margin-bottom:4px; font-size:14px }
+
+/* caso precise de texto reduzido em colunas numéricas */
+.table td small { color:var(--muted); font-size:12px; display:block; margin-top:4px; }
+
+/* ----------------- Observações e forms ----------------- */
 .area-observacoes{margin-top:12px}
-
-/* forms area */
 .formsArea{margin-top:12px}
-
-/* inputs */
 input,select,textarea{padding:10px;border-radius:8px;border:1px solid #ddd;margin:6px 0;}
 
-/* responsive */
-@media(max-width:900px){
+/* ----------------- Responsividade (mantendo UX atual) ----------------- */
+@media (max-width:900px) {
   .row{flex-direction:column}
   .logo{height:48px}
   .hero { min-height:160px }
   .hero .conteudo { padding:28px 12px 10px 12px }
   .produto-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+  .table thead th, .table tbody td { padding:8px 10px; font-size:14px; }
+  .container{padding-left:8px;padding-right:8px}
 }
 
-@media(max-width:420px){
+/* Para dispositivos móveis: permitir scroll horizontal; manter tabela legível */
+@media (max-width:720px) {
   body{padding:8px}
   .titulo{font-size:18px}
   .logo{height:44px}
-  input,select,button{width:100%}
-  .hero { min-height:140px }
-  .btn{display:block;margin-bottom:10px}
+
+  /* Faz o wrapper permitir scroll em vez de quebrar colunas */
+  #areaProducao, .table-wrap { overflow-x:auto; -webkit-overflow-scrolling: touch; }
+
+  /* Força um min-width menor mas preserva colunas; usuário desliza para ver */
+  .table { min-width:700px; }
+
+  /* diminuir paddings e fonte nas células para cabe mais conteúdo */
+  .table thead th, .table tbody td { padding:7px 8px; font-size:13px; white-space:nowrap; }
+
+  /* permitir que a coluna do produto quebre e ocupe mais linhas se necessário */
+  .table tbody td:nth-child(2) { white-space:normal; max-width:260px; word-wrap:break-word; word-break:break-word; }
+
+  /* ajustar KG detalhes */
+  .detalhes-kg { font-size:12px; color:#444; }
+
+  .area-observacoes { font-size:13px; }
+  .btn { padding:8px 10px; margin-right:8px; font-size:14px }
 }
+
+/* phones muito estreitos */
+@media (max-width:420px) {
+  .table { min-width:640px; }
+  .table thead th, .table tbody td { padding:6px 6px; font-size:12px; }
+  .btn { padding:8px 10px; font-size:13px; display:block; width:100%; margin-bottom:8px }
+  .btn-ghost { display:block; width:100%; margin-bottom:8px }
+  .detalhes-kg { font-size:12px; }
+  .area-observacoes { font-size:12px; }
+  input,select,button{font-size:14px}
+}
+
+/* ----------------- Pequenos ajustes visuais ----------------- */
+.table tbody tr.feito { background: linear-gradient(90deg, rgba(0,0,0,0.01), rgba(0,0,0,0.00)); }
+.table tbody tr:hover td { background: rgba(0,0,0,0.01); }
+
+/* manter o cabeçalho legível durante scroll horizontal */
+.table thead th { position: sticky; top:0; background: #fff; z-index:3; padding-top:12px; padding-bottom:12px; }
+
+/* Sidebar / indicadores */
+.indicadores .indicador{margin-bottom:6px}
