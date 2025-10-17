@@ -6,42 +6,35 @@ const prisma = require('../prismaCliente')
 const bcrypt = require('bcryptjs')
 const auth = require('../middleware/autenticacao')
 
-// util: verifica se o papel é válido (ajuste se tiver mais papeis)
-const PAPEIS_VALIDOS = ['DONO', 'COZINHA', 'COZINHEIRO', 'ADMIN']
+// papéis válidos conforme schema.prisma
+const PAPEIS_VALIDOS = ['DONO', 'COZINHEIRO']
 
-// --------------------------------------------------
-// Rota segura: criar usuário (apenas DONO)
-// --------------------------------------------------
+// Criar usuário (apenas DONO)
 router.post('/', auth, async (req, res) => {
   try {
-    // middleware `auth` deve popular req.usuario com { usuarioId, nome, papel }
     if (!req.usuario || String(req.usuario.papel).toUpperCase() !== 'DONO') {
       return res.status(403).json({ erro: 'apenas dono pode criar usuários' })
     }
     const { nome, senha, papel } = req.body
     if (!nome || !senha) return res.status(400).json({ erro: 'nome e senha são obrigatórios' })
 
-    // checar existente
-    const existente = await prisma.usuario.findFirst({ where: { nome } })
-    if (existente) return res.status(400).json({ erro: 'nome já cadastrado' })
+    const existente = await prisma.usuario.findUnique({ where: { nome } })
+    if (existente) return res.status(409).json({ erro: 'nome já em uso' })
 
-    const papelFinal = papel && PAPEIS_VALIDOS.includes(String(papel).toUpperCase()) ? String(papel).toUpperCase() : 'COZINHA'
+    const papelUp = papel ? String(papel).toUpperCase() : 'COZINHEIRO'
+    if (!PAPEIS_VALIDOS.includes(papelUp)) return res.status(400).json({ erro: 'papel inválido' })
+
     const hash = await bcrypt.hash(senha, 10)
-    const novo = await prisma.usuario.create({
-      data: { nome, senha: hash, papel: papelFinal }
-    })
-    // não retornar a senha
-    const { senha: s, ...ret } = novo
-    res.json(ret)
+    const criado = await prisma.usuario.create({ data: { nome, senha: hash, papel: papelUp } })
+    const { senha: _, ...rest } = criado
+    res.status(201).json(rest)
   } catch (e) {
-    console.error('erro criar usuario:', e)
+    console.error('erro /usuarios POST', e)
     res.status(500).json({ erro: 'erro interno' })
   }
 })
 
-// --------------------------------------------------
-// Trocar senha (usuário autenticado) - PUT /usuarios/trocar-senha
-// --------------------------------------------------
+// Trocar senha (usuário autenticado)
 router.put('/trocar-senha', auth, async (req, res) => {
   try {
     const { senhaAtual, novaSenha, confirmarSenha } = req.body
@@ -67,11 +60,7 @@ router.put('/trocar-senha', auth, async (req, res) => {
   }
 })
 
-// --------------------------------------------------
-// Rota pública opcional para registrar (bootstrap)
-// - se houver usuários no banco: só permite com REGISTRAR_CODIGO correto
-// - se não houver usuários: permite criar primeiro usuário (bootstrap)
-// --------------------------------------------------
+// Registrar (bootstrap ou com código)
 router.post('/registrar', async (req, res) => {
   try {
     const { nome, senha, codigoRegistro } = req.body
@@ -81,16 +70,14 @@ router.post('/registrar', async (req, res) => {
     const codigoEnv = process.env.REGISTRAR_CODIGO || ''
 
     if (total > 0) {
-      // já existem usuários -> exige código
       if (!codigoEnv) return res.status(403).json({ erro: 'registro desabilitado' })
       if (!codigoRegistro || codigoRegistro !== codigoEnv) return res.status(403).json({ erro: 'codigo de registro inválido' })
     }
 
-    const existente = await prisma.usuario.findFirst({ where: { nome } })
+    const existente = await prisma.usuario.findUnique({ where: { nome } })
     if (existente) return res.status(400).json({ erro: 'nome já cadastrado' })
 
-    // se for o primeiro usuário, damos papel DONO (bootstrap)
-    const papel = total === 0 ? 'DONO' : 'COZINHA'
+    const papel = total === 0 ? 'DONO' : 'COZINHEIRO'
     const hash = await bcrypt.hash(senha, 10)
     const novo = await prisma.usuario.create({ data: { nome, senha: hash, papel } })
     const { senha: s, ...ret } = novo
@@ -101,7 +88,7 @@ router.post('/registrar', async (req, res) => {
   }
 })
 
-// opcional: listar usuários (apenas DONO)
+// Listar usuários (apenas DONO)
 router.get('/', auth, async (req, res) => {
   try {
     if (!req.usuario || String(req.usuario.papel).toUpperCase() !== 'DONO') return res.status(403).json({ erro: 'apenas dono' })

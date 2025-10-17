@@ -1,87 +1,63 @@
 // public/js/admin.js
 (function () {
   let token = null
-  const api = '/'
+  const api = '/' // raiz da API
   let ws = null
   let chart = null
 
   function lerJSON(res) { return res.text().then(t => { try { return JSON.parse(t) } catch(e){ return {} } }) }
 
-  // ---------- util de moeda (usa numeroParaBRL/brlParaNumero do utils_moeda.js) ----------
-  // parser robusto para números com formatos BR/EN:
-  // - aceita "1,5", "1.5", "1.500,25", "1,500" (interpreta vírgula como decimal)
+  // ---------- util: parse decimal flexível (aceita "1,5" "1.500,25" "1.5") ----------
   function parseDecimalFlex(str) {
     if (str == null) return NaN
     let s = String(str).trim()
     if (s === '') return NaN
-    s = s.replace(/\s+/g, '') // remove espaços
+    s = s.replace(/\s+/g, '')
     const hasDot = s.indexOf('.') !== -1
     const hasComma = s.indexOf(',') !== -1
-
     if (hasDot && hasComma) {
-      // exemplo: "1.234,56" => ponto milhar, vírgula decimal
-      // se última vírgula aparece após último ponto => vírgula é decimal
       if (s.lastIndexOf(',') > s.lastIndexOf('.')) {
         s = s.replace(/\./g, '').replace(/,/g, '.')
       } else {
-        // caso oposto: "1,234.56" -> remove vírgulas
         s = s.replace(/,/g, '')
       }
     } else if (hasComma) {
-      // só vírgula -> assume decimal
       s = s.replace(/,/g, '.')
     } else if (hasDot) {
-      // só ponto -> pode ser decimal (1.5) ou milhar (1.000)
-      // heurística: se após último ponto houver exatamente 3 dígitos, provavelmente é milhar -> remover pontos
       const after = s.split('.').pop()
-      if (after.length === 3) {
-        s = s.replace(/\./g, '')
-      }
-      // caso contrário, assume ponto decimal e mantém
+      if (after.length === 3) s = s.replace(/\./g, '')
     }
     const n = Number(s)
     return isNaN(n) ? NaN : n
   }
 
-  // extrai pesos e calcula valores a partir da observação e/ou produto.preco
-  function extrairPesosEValor(observacao, precoPorKg, quantidadeEsperada) {
+  // ---------- extrai pesos e calcula valores quando produto KG ----------
+  function extrairPesosEValor(observacao, precoPorKg) {
     if (!observacao) return null
     try {
-      // normaliza separadores
       const obs = observacao.replace(/\u00A0/g, ' ')
-      // tenta encontrar pesos: "Pesos(kg): 1.5, 2.2" ou "Pesos: 1,5;2,2" etc
       const pesosMatch = obs.match(/Pesos\s*(?:\(|\s)*kg(?:\))?\s*[:\-]?\s*([\d\.,;\s|\/\\\-]+)/i)
       const valorMatch = obs.match(/Valor\s*total\s*[:\-]?\s*([0-9\.,]+)/i)
       const result = {}
-
       if (pesosMatch && pesosMatch[1]) {
-        // prepara uma lista de tokens possiveis (separadores: , ; | espaço - /)
         let raw = pesosMatch[1].trim()
         raw = raw.replace(/;/g, ',').replace(/\|/g, ',').replace(/\//g, ',').replace(/\\/g, ',')
-        // split por vírgula e por espaços quando não houver vírgula
         let tokens = raw.indexOf(',') !== -1 ? raw.split(',') : raw.split(/\s+/)
         tokens = tokens.map(t => t.trim()).filter(Boolean)
         const pesos = tokens.map(t => parseDecimalFlex(t)).filter(p => !isNaN(p) && p > 0)
         if (pesos.length > 0) result.pesos = pesos
       }
-
       if (valorMatch && valorMatch[1]) {
         const v = parseDecimalFlex(valorMatch[1])
         if (!isNaN(v)) result.valorTotal = v
       }
-
-      // se não veio valorTotal mas vier pesos e precoPorKg, calcula
       if (!result.valorTotal && Array.isArray(result.pesos) && precoPorKg != null) {
         const soma = result.pesos.reduce((a,b)=> a + b, 0)
         result.valorTotal = Number((soma * Number(precoPorKg)).toFixed(2))
       }
-
-      // se temos pesos e precoPorKg -> calcular valor por unidade (array)
       if (Array.isArray(result.pesos) && precoPorKg != null) {
         result.valoresPorUnidade = result.pesos.map(p => Number((p * Number(precoPorKg)).toFixed(2)))
       }
-
-      // garantir que, se quantidadeEsperada está informada, e pesos length difere, ainda retornamos o que temos
       return Object.keys(result).length ? result : null
     } catch (e) {
       console.error('extrairPesosEValor erro', e)
@@ -89,37 +65,35 @@
     }
   }
 
-  // login
+  // ---------- login ----------
   document.getElementById('formLogin').addEventListener('submit', async (e) => {
     e.preventDefault()
     const nome = document.getElementById('nome').value.trim()
     const senha = document.getElementById('senha').value
-    const res = await fetch(api + 'autenticacao/login', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ nome, senha }) })
-    const d = await lerJSON(res)
-    if (res.ok) {
-      token = d.token
-      document.getElementById('loginCard').style.display = 'none'
-      document.getElementById('appArea').style.display = 'block'
-      iniciar()
-    } else alert(d.erro || 'erro no login')
+    try {
+      const res = await fetch(api + 'autenticacao/login', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ nome, senha }) })
+      const d = await lerJSON(res)
+      if (res.ok) {
+        token = d.token
+        document.getElementById('loginCard').style.display = 'none'
+        document.getElementById('appArea').style.display = 'block'
+        iniciar()
+      } else {
+        alert(d.erro || 'erro no login')
+      }
+    } catch (err) {
+      alert('Erro: ' + err.message)
+    }
   })
 
-  // botões
+  // ---------- botões ----------
   document.getElementById('btnSair').addEventListener('click', ()=> location.reload())
-  const btnPainelEl = document.getElementById('btnPainel')
-  if (btnPainelEl) {
-    btnPainelEl.addEventListener('click', ()=> {
-      document.getElementById('formsArea').innerHTML = ''
-      document.getElementById('areaProducao').style.display = 'block'
-      const titulo = document.getElementById('tituloPainel')
-      if (titulo) titulo.innerText = 'Produção do dia'
-      carregarLista(); carregarResumo(); carregarObservacoes()
-    })
-  }
   document.getElementById('btnProdutos').addEventListener('click', async ()=> { await mostrarProdutos(); })
   document.getElementById('btnCriarLista').addEventListener('click', montarFormularioCriarLista)
   document.getElementById('btnConfig').addEventListener('click', mostrarConfiguracoes)
   document.getElementById('btnNovoProdutoTopo').addEventListener('click', ()=> abrirFormProduto())
+  document.getElementById('btnCadastrarUsuario').addEventListener('click', ()=> mostrarCadastroUsuario())
+  document.getElementById('btnPainel').addEventListener('click', ()=> mostrarPainel())
   document.getElementById('dataFiltro').addEventListener('change', ()=> { carregarLista(); carregarObservacoes(); carregarResumo(); })
 
   async function iniciar() {
@@ -128,7 +102,7 @@
     mostrarPainel()
   }
 
-  // WebSocket
+  // ---------- WebSocket ----------
   function conectarWS() {
     if (ws) ws.close()
     ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host)
@@ -136,8 +110,8 @@
     ws.addEventListener('message', (ev)=> {
       try {
         const msg = JSON.parse(ev.data)
-        if (msg.type === 'item_finalizado' || msg.type === 'lista_atualizada' || msg.type === 'observacao' || msg.type === 'item_adicionado') {
-          // atualiza painel
+        // eventos: item_finalizado, lista_atualizada, observacao, item_adicionado
+        if (['item_finalizado','lista_atualizada','observacao','item_adicionado'].includes(msg.type)) {
           carregarLista(); carregarResumo(); carregarObservacoes()
         }
       } catch(e) { console.error(e) }
@@ -160,7 +134,9 @@
     area.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center">
         <h3>Produtos</h3>
-        <button id="btnVoltarPainelProdutos" class="btn">Voltar ao Painel</button>
+        <div>
+          <button id="btnVoltarPainelProdutos" class="btn">Voltar ao Painel</button>
+        </div>
       </div>
       <div id="produtosGrid" class="produto-grid"></div>`
     document.getElementById('btnVoltarPainelProdutos').addEventListener('click', mostrarPainel)
@@ -202,12 +178,13 @@
     const area = document.getElementById('formsArea')
     area.innerHTML = `<h3>${id ? 'Editar' : 'Novo'} Produto</h3>
       <form id="formProduto">
-        <input id="pNome" placeholder="Nome" required />
+        <label>Nome</label><input id="pNome" placeholder="Nome" required />
+        <label>Tipo</label>
         <select id="pTipo"><option value="MASSA">Massa</option><option value="MOLHO">Molho</option><option value="LASANHA">Lasanha</option><option value="TORTA">Torta</option><option value="OUTRO">Outro</option></select>
-        <label>Unidade:
-          <select id="pUnidade"><option value="UN">UN (unidade)</option><option value="KG">KG (quilograma)</option></select>
-        </label>
-        <input id="pPreco" placeholder="Preço (ex: 12,50) — se KG: preço por kg" required />
+        <label>Unidade</label>
+        <select id="pUnidade"><option value="UN">UN (unidade)</option><option value="KG">KG (quilograma)</option></select>
+        <label>Preço (ex: 12,50) — se KG: preço por kg</label>
+        <input id="pPreco" placeholder="Preço (ex: 12,50)" required />
         <div style="margin-top:8px">
           <button class="btn action-primaria">${id ? 'Salvar' : 'Criar'}</button>
           <button type="button" class="btn-ghost" id="btnVoltarPainel">Voltar</button>
@@ -241,11 +218,7 @@
         const res = await fetch(url, { method, headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+token }, body: JSON.stringify(body) })
         const d = await lerJSON(res)
         if (res.ok) {
-          if (d.unidade && d.unidade !== unidade) {
-            alert(`Produto salvo, porém backend retornou unidade diferente: ${d.unidade}. Verifique no servidor.`)
-          } else {
-            alert('Salvo')
-          }
+          alert('Salvo')
           mostrarProdutos()
         } else {
           alert(d.erro || JSON.stringify(d) || 'erro ao salvar')
@@ -256,7 +229,7 @@
     })
   }
 
-  // ---------- Criar lista ----------
+  // ---------- criar lista ----------
   async function montarFormularioCriarLista() {
     document.getElementById('areaProducao').style.display = 'block'
     const produtos = await fetchProdutos()
@@ -273,6 +246,11 @@
       sel.addEventListener('change', ()=> { preco.value = String(sel.selectedOptions[0].dataset.preco).replace('.',',') })
       const container = document.createElement('div')
       container.style.marginBottom='8px'
+      // arrumar layout simples dos campos
+      sel.style.marginRight = '8px'
+      qtd.style.width = '70px'; qtd.style.marginRight='8px'
+      preco.style.width = '120px'; preco.style.marginRight='8px'
+      data.style.width = '150px'
       container.appendChild(sel); container.appendChild(qtd); container.appendChild(preco); container.appendChild(data)
       itensArea.appendChild(container)
     }
@@ -297,7 +275,7 @@
     })
   }
 
-  // ---------- Lista de Produção (tabela) ----------
+  // ---------- lista de produção ----------
   async function carregarLista() {
     document.getElementById('areaProducao').style.display = 'block'
     const data = document.getElementById('dataFiltro').value || new Date().toISOString().slice(0,10)
@@ -307,17 +285,12 @@
 
     tbody.innerHTML = itens.map(i=>{
       const preco = i.precoUnitario != null ? i.precoUnitario : i.produto.preco
-      // extrair pesos/valor (se presente na observação)
-      const detalhes = extrairPesosEValor(i.observacao, i.produto.preco, i.quantidade)
+      const detalhes = extrairPesosEValor(i.observacao, i.produto.preco)
       let detalhesHtml = ''
       if (detalhes && detalhes.pesos) {
-        // pesos formatados corretamente (pt-BR) com 2 casas
         const pesosFmt = detalhes.pesos.map(p => `${Number(p).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 3 })} kg`).join(', ')
-        // valores por unidade (se calculados)
         let valoresUnidadeHtml = ''
-        if (detalhes.valoresPorUnidade) {
-          valoresUnidadeHtml = detalhes.valoresPorUnidade.map(v => numeroParaBRL(v)).join(' — ')
-        }
+        if (detalhes.valoresPorUnidade) valoresUnidadeHtml = detalhes.valoresPorUnidade.map(v => numeroParaBRL(v)).join(' — ')
         const valorTotalFmt = detalhes.valorTotal != null ? numeroParaBRL(detalhes.valorTotal) : numeroParaBRL(preco * i.quantidade)
         detalhesHtml = `<div class="detalhes-kg" style="font-size:13px;color:#333;margin-top:6px">
           <div><b>Pesos:</b> ${pesosFmt}</div>
@@ -326,7 +299,6 @@
         </div>`
       }
 
-      // valor exibido principal: mostrar total (como antes) mas também o valor por unidade em detalhe
       const valorTotal = i.precoUnitario != null ? (i.precoUnitario * i.quantidade) : (preco * i.quantidade)
       const valorExib = numeroParaBRL(valorTotal)
 
@@ -368,9 +340,9 @@
     const area = document.getElementById('formsArea')
     area.innerHTML = `<h3>Editar Item ${id}</h3>
       <form id="formEditarItem">
-        <input id="eQuantidade" type="number" placeholder="Quantidade" required />
-        <input id="ePreco" placeholder="Preço (ex: 12,50)" required />
-        <input id="eData" type="date" required />
+        <label>Quantidade</label><input id="eQuantidade" type="number" placeholder="Quantidade" required />
+        <label>Preço (ex: 12,50)</label><input id="ePreco" placeholder="Preço (ex: 12,50)" required />
+        <label>Data</label><input id="eData" type="date" required />
         <div style="margin-top:8px">
           <button class="btn action-primaria">Salvar</button>
           <button type="button" id="btnVoltarPainel" class="btn-ghost">Voltar</button>
@@ -400,7 +372,7 @@
     })
   }
 
-  // ---------- Observações do dia ----------
+  // ---------- observações ----------
   async function carregarObservacoes() {
     const data = document.getElementById('dataFiltro').value || new Date().toISOString().slice(0,10)
     const res = await fetch(api + 'producao/observacoes?data=' + data, { headers: { 'Authorization': 'Bearer ' + token } })
@@ -408,7 +380,7 @@
     const itens = await res.json()
     if (!itens || itens.length === 0) { document.getElementById('listaObservacoes').innerText = 'Nenhuma observação por enquanto.'; return }
     const html = itens.map(i => {
-      const detalhes = extrairPesosEValor(i.observacao, i.produto.preco, i.quantidade)
+      const detalhes = extrairPesosEValor(i.observacao, i.produto.preco)
       let extras = ''
       if (detalhes) {
         if (detalhes.pesos) {
@@ -429,10 +401,10 @@
     document.getElementById('listaObservacoes').innerHTML = html
   }
 
-  // ---------- Resumo e grafico ----------
+  // ---------- resumo e grafico ----------
   async function carregarResumo() {
     const data = document.getElementById('dataFiltro').value || new Date().toISOString().slice(0,10)
-    const res = await fetch(api + 'producao/resumo?data=' + data, { headers: { 'Authorization': 'Bearer ' + token } })
+    const res = await fetch(api + 'resumo?data=' + data, { headers: { 'Authorization': 'Bearer ' + token } })
     const d = await res.json()
     document.getElementById('totalQtd').innerText = d.totalQuantidade
     document.getElementById('totalValor').innerText = numeroParaBRL(d.totalValor)
@@ -454,7 +426,7 @@
     chart = new Chart(ctx, { type: 'pie', data: { labels, datasets: [{ data }] } })
   }
 
-  // ---------- Configurações (troca de senha) ----------
+  // ---------- configurações: trocar senha ----------
   function mostrarConfiguracoes() {
     const area = document.getElementById('formsArea')
     area.innerHTML = `<h3>Configurações</h3>
@@ -478,23 +450,54 @@
       if (!atual || !nova || !conf) return alert('Preencha todos os campos')
       if (nova !== conf) return alert('Confirmação diferente da nova senha')
       try {
-        const res = await fetch(api + 'usuarios/trocar-senha', { method: 'POST', headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+token }, body: JSON.stringify({ senhaAtual: atual, senhaNova: nova }) })
+        const res = await fetch(api + 'usuarios/trocar-senha', { method: 'PUT', headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+token }, body: JSON.stringify({ senhaAtual: atual, novaSenha: nova, confirmarSenha: conf }) })
         const d = await lerJSON(res)
         if (res.ok) { alert('Senha alterada com sucesso'); mostrarPainel() } else { alert(d.erro || JSON.stringify(d) || 'erro ao alterar senha') }
       } catch (err) { alert('Erro: ' + err.message) }
     })
   }
 
-  // ---------- Painel (voltar) ----------
+  // ---------- cadastro de usuário (pelo DONO) ----------
+  function mostrarCadastroUsuario() {
+    document.getElementById('areaProducao').style.display = 'none'
+    const area = document.getElementById('formsArea')
+    area.innerHTML = `
+      <h3>Cadastrar Usuário</h3>
+      <form id="formCadastroUsuario">
+        <label>Nome</label><input id="uNome" required />
+        <label>Senha</label><input id="uSenha" type="password" required />
+        <label>Confirmar senha</label><input id="uConfirma" type="password" required />
+        <label>Papel</label>
+        <select id="uPapel"><option value="COZINHA">Cozinha</option><option value="DONO">Dono</option></select>
+        <div style="margin-top:8px"><button class="btn action-primaria">Criar</button> <button type="button" class="btn-ghost" id="btnVoltarPainelCadastro">Voltar</button></div>
+      </form>`
+    document.getElementById('btnVoltarPainelCadastro').addEventListener('click', ()=> { area.innerHTML=''; document.getElementById('areaProducao').style.display='block' })
+    document.getElementById('formCadastroUsuario').addEventListener('submit', async (e)=> {
+      e.preventDefault()
+      const nome = document.getElementById('uNome').value.trim()
+      const senha = document.getElementById('uSenha').value
+      const conf = document.getElementById('uConfirma').value
+      const papel = document.getElementById('uPapel').value
+      if (!nome || !senha || !conf) return alert('Preencha todos os campos')
+      if (senha !== conf) return alert('Confirmação diferente da senha')
+      try {
+        const res = await fetch(api + 'usuarios', { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+token }, body: JSON.stringify({ nome, senha, papel }) })
+        const d = await lerJSON(res)
+        if (res.ok) { alert('Usuário criado'); mostrarProdutos() } else { alert(d.erro || JSON.stringify(d) || 'erro') }
+      } catch (err) { alert('Erro: ' + err.message) }
+    })
+  }
+
+  // ---------- painel (voltar) ----------
   function mostrarPainel() {
     document.getElementById('formsArea').innerHTML = ''
     document.getElementById('areaProducao').style.display = 'block'
-    const titulo = document.getElementById('tituloPainel')
-    if (titulo) titulo.innerText = 'Produção do dia'
+    document.getElementById('tituloPainel').innerText = 'Produção do dia'
     carregarLista(); carregarResumo(); carregarObservacoes()
   }
 
-  window.__appPaparazzi = { mostrarProdutos, mostrarPainel }
+  // ---------- expor para depuração ----------
+  window.__appPaparazzi = { mostrarProdutos, mostrarPainel, mostrarCadastroUsuario }
 
   // inicializa
 })();

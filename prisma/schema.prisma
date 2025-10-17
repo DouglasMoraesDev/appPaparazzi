@@ -1,3 +1,4 @@
+// prisma/schema.prisma
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
@@ -8,12 +9,12 @@ generator client {
 }
 
 model Usuario {
-  id        Int      @id @default(autoincrement())
-  nome      String   @unique
-  senha     String
-  papel     Papel    @default(COZINHEIRO)
-  criadoEm  DateTime @default(now())
-  itensCriados ItemProducao[] @relation("Criador")
+  id            Int            @id @default(autoincrement())
+  nome          String         @unique
+  senha         String
+  papel         Papel          @default(COZINHEIRO)
+  criadoEm      DateTime       @default(now())
+  itensCriados  ItemProducao[] @relation("Criador")
 }
 
 enum Papel {
@@ -22,12 +23,12 @@ enum Papel {
 }
 
 model Produto {
-  id        Int      @id @default(autoincrement())
+  id        Int         @id @default(autoincrement())
   nome      String
   tipo      TipoProduto
-  preco     Float     // para KG: preço por kg; para UN: preço unitário
-  unidade   Unidade   @default(UN)
-  criadoEm  DateTime @default(now())
+  preco     Float
+  unidade   Unidade     @default(UN)
+  criadoEm  DateTime    @default(now())
   itens     ItemProducao[]
 }
 
@@ -40,8 +41,8 @@ enum TipoProduto {
 }
 
 enum Unidade {
-  UN   // unidade (peça)
-  KG   // quilograma (preço por kg)
+  UN
+  KG
 }
 
 model ItemProducao {

@@ -1,32 +1,46 @@
+// src/servidor.js
 const express = require('express')
 const cors = require('cors')
-const bodyParser = require('body-parser')
 const dotenv = require('dotenv')
 const http = require('http')
 const WebSocket = require('ws')
-const autenticacao = require('./rotas/autenticacao')
-const produtos = require('./rotas/produtos')
-const producao = require('./rotas/producao')
-const resumo = require('./rotas/resumo')
-const wsServidor = require('./wsServidor')
+const path = require('path')
 
 dotenv.config()
-const app = express()
-app.use(cors())
-app.use(bodyParser.json())
-app.use(express.static('public'))
 
+const autenticacao = require('./rotas/autenticacao')
+const produtos = require('./rotas/produtos') || require('./rotas/produtos') // manter se existir
+const producao = require('./rotas/producao') || require('./rotas/producao')
+const resumo = require('./rotas/resumo') || require('./rotas/resumo')
+const wsServidor = require('./wsServidor') // arquivo simples (ex.: src/wsServidor.js)
+
+const app = express()
+
+app.use(cors())
+app.use(express.json()) // substitui body-parser
+app.use(express.static(path.join(__dirname, '..', 'public')))
+
+// Rotas
 app.use('/autenticacao', autenticacao)
-app.use('/produtos', produtos)
-app.use('/producao', producao)
-app.use('/resumo', resumo)
+if (produtos) app.use('/produtos', produtos)
+if (producao) app.use('/producao', producao)
+if (resumo) app.use('/resumo', resumo)
+
+// healthcheck
+app.get('/ping', (req, res) => res.json({ ok: true }))
 
 const PORT = process.env.PORT || 3333
 const server = http.createServer(app)
 
-// WebSocket server
-const wss = new WebSocket.Server({ server })
-wsServidor.setup(wss)
+// WebSocket server (se existir implementação)
+try {
+  const wss = new WebSocket.Server({ server })
+  if (wsServidor && typeof wsServidor.setup === 'function') {
+    wsServidor.setup(wss)
+  }
+} catch (e) {
+  console.warn('WebSocket não iniciado:', e.message)
+}
 
 server.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`)
